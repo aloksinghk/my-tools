@@ -2,7 +2,8 @@
   { "name": "HTML Formatter", "file": "html-formatter.html", "category": "HTML" },
   { "name": "Meta Tag Generator", "file": "meta-generator.html", "category": "SEO" },
   { "name": "Color Converter", "file": "color-converter.html", "category": "Design" },
-  { "name": "JSON Validator", "file": "json-validator.html", "category": "JSON" },
+  { "name": "JSON Validator", "file": "json-validator.html", "category": "TOOL" },
   { "name": "URL Encoder", "file": "url-encoder.html", "category": "Utility" },
-  { "name": "Markdown to HTML", "file": "markdown-to-html.html", "category": "Converter" }
+  { "name": "Markdown to HTML", "file": "markdown-to-html.html", "category": "Converter" },
+  { "name": "Certificate Decoder", "file": "cert-decoder.html", "category": "TOOL" }
 ]
