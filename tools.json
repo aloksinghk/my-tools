@@ -6,5 +6,7 @@
   { "name": "URL Encoder", "file": "url-encoder.html", "category": "Utility" },
   { "name": "Markdown to HTML", "file": "markdown-to-html.html", "category": "Converter" },
   { "name": "Certificate Decoder", "file": "cert-decoder.html", "category": "TOOL" },
-  { "name": "Everyday MOP Assistent", "file": "https://mop-assistant.internal.ericsson.com", "category": "TOOL" }
+  { "name": "Everyday MOP Assistent", "file": "https://mop-assistant.internal.ericsson.com", "category": "TOOL" },
+  { "name": "ChatGPT", "file": "https://chat.openai.com", "category": "AI" },
+  { "name": "Google", "file": "https://www.google.com", "category": "Utility" }
 ]
