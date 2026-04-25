@@ -145,6 +145,10 @@ fetch('tools.json')
 // Render filters
 function renderFilters() {
   const container = document.getElementById("filters");
+
+  // 🔥 FIX: clear previous buttons
+  container.innerHTML = "";
+
   const categories = ["All", ...new Set(toolsData.map(t => t.category))];
 
   categories.forEach(cat => {
