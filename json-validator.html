@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JSON Comparator</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F8FC; --surface:#FFFFFF; --surface2:#F0F2FA; --surface3:#E8EBF7;
+  --border:#DDE1F0; --border2:#C8CEDE;
+  --text:#1A1D2E; --text2:#4A5068; --text3:#8B92AD;
+  --blue:#4361EE; --blue-light:#EEF1FD; --blue-mid:#C5CEFC;
+  --green:#2BB5A0; --green-light:#E8F8F6; --green-mid:#A8E6DF;
+  --red:#E05263; --red-light:#FDEEF0; --red-mid:#F8BDC4;
+  --amber:#F59E0B; --amber-light:#FEF3C7; --amber-mid:#FCD89A;
+  --violet:#7C3AED; --violet-light:#EDE9FE;
+  --radius-sm:6px; --radius:10px; --radius-lg:14px; --radius-xl:20px;
+  --shadow-sm:0 1px 3px rgba(67,97,238,0.06),0 1px 2px rgba(0,0,0,0.04);
+  --shadow:0 4px 16px rgba(67,97,238,0.08),0 1px 4px rgba(0,0,0,0.04);
+  --shadow-lg:0 8px 32px rgba(67,97,238,0.12),0 2px 8px rgba(0,0,0,0.06);
+  --sans:'Plus Jakarta Sans',sans-serif; --mono:'Fira Code',monospace;
+}
+html{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+body{min-height:100vh;display:flex;flex-direction:column}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 60% 40% at 10% 0%,rgba(67,97,238,0.06) 0%,transparent 70%),radial-gradient(ellipse 50% 50% at 90% 100%,rgba(43,181,160,0.05) 0%,transparent 70%)}
+
+/* ── Header ── */
+header{position:relative;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:var(--shadow-sm);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-mark{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#4361EE 0%,#7C3AED 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(67,97,238,0.35)}
+.logo-mark svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.logo-name{font-size:16px;font-weight:700;letter-spacing:-0.02em;color:var(--text)}
+.logo-name em{font-style:normal;color:var(--blue)}
+.header-tag{font-family:var(--mono);font-size:11px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);padding:4px 10px;border-radius:20px;letter-spacing:0.02em}
+
+/* ── Main ── */
+main{position:relative;z-index:1;flex:1;display:flex;flex-direction:column;padding:1.75rem 2rem 2.5rem;gap:1.25rem;max-width:1440px;width:100%;margin:0 auto}
+.section-label{font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── Editors ── */
+.editors{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;display:flex;flex-direction:column;transition:box-shadow 0.2s,border-color 0.2s}
+.panel:focus-within{border-color:var(--blue-mid);box-shadow:var(--shadow)}
+.panel-head{padding:11px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border-bottom:1px solid var(--border)}
+.panel-id{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;color:var(--text)}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot-a{background:var(--blue)} .dot-b{background:var(--amber)}
+.badge{font-size:10px;font-family:var(--mono);font-weight:500;padding:3px 10px;border-radius:20px;letter-spacing:0.03em;transition:all 0.2s}
+.badge-empty{background:var(--surface3);border:1px solid var(--border2);color:var(--text3)}
+.badge-ok{background:var(--green-light);border:1px solid var(--green-mid);color:var(--green)}
+.badge-err{background:var(--red-light);border:1px solid var(--red-mid);color:var(--red)}
+textarea{flex:1;min-height:210px;resize:vertical;background:#fff;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:12.5px;line-height:1.7;padding:14px 16px;caret-color:var(--blue)}
+textarea::placeholder{color:var(--text3)}
+.panel-foot{border-top:1px solid var(--border);padding:6px 16px;min-height:26px;background:var(--surface2)}
+.err-msg{font-size:11px;font-family:var(--mono);color:var(--red)}
+
+/* ── Action bar ── */
+.action-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn-compare{font-family:var(--sans);font-size:13px;font-weight:700;padding:10px 26px;background:linear-gradient(135deg,#4361EE 0%,#7C3AED 100%);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;box-shadow:0 4px 14px rgba(67,97,238,0.35);transition:transform 0.15s,box-shadow 0.15s;display:flex;align-items:center;gap:8px}
+.btn-compare:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(67,97,238,0.42)}
+.btn-compare:active{transform:scale(0.97)}
+.btn-compare svg{width:15px;height:15px}
+.btn-clear{font-family:var(--sans);font-size:13px;font-weight:500;padding:10px 18px;background:var(--surface);color:var(--text2);border:1px solid var(--border2);border-radius:var(--radius);cursor:pointer;transition:all 0.15s}
+.btn-clear:hover{background:var(--surface2);color:var(--text)}
+.btn-export{font-family:var(--sans);font-size:12px;font-weight:600;padding:8px 14px;background:var(--surface);color:var(--text2);border:1px solid var(--border2);border-radius:var(--radius);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:6px}
+.btn-export:hover{background:var(--surface2);color:var(--blue);border-color:var(--blue-mid)}
+.btn-export svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.export-group{display:flex;gap:6px;margin-left:auto}
+.kbd-hint{font-family:var(--mono);font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px}
+kbd{background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:2px 6px;font-size:10px;font-family:var(--mono);color:var(--text2)}
+
+/* ── Results ── */
+.results{display:none;flex-direction:column;gap:1rem}
+.results.visible{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.results.visible{animation:fadeUp 0.3s ease}
+
+/* ── Metrics ── */
+.metrics{display:flex;gap:10px;flex-wrap:wrap}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);padding:14px 20px;min-width:100px;display:flex;flex-direction:column;gap:4px}
+.metric-val{font-size:28px;font-weight:700;line-height:1;letter-spacing:-0.02em}
+.metric-label{font-size:11px;font-weight:500;color:var(--text3);letter-spacing:0.04em}
+.m-total .metric-val{color:var(--text)} .m-same .metric-val{color:var(--green)}
+.m-diff .metric-val{color:var(--red)} .m-only-a .metric-val{color:var(--blue)} .m-only-b .metric-val{color:var(--amber)}
+
+/* ── Controls ── */
+.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filter-btn{font-family:var(--sans);font-size:12px;font-weight:600;padding:6px 14px;border-radius:20px;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all 0.15s}
+.filter-btn:hover{background:var(--surface2)}
+.filter-btn.active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 2px 8px rgba(67,97,238,0.3)}
+.filter-btn.f-same.active{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 2px 8px rgba(43,181,160,0.3)}
+.filter-btn.f-different.active{background:var(--red);border-color:var(--red);color:#fff;box-shadow:0 2px 8px rgba(224,82,99,0.3)}
+.filter-btn.f-only-a.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.filter-btn.f-only-b.active{background:var(--amber);border-color:var(--amber);color:#fff;box-shadow:0 2px 8px rgba(245,158,11,0.3)}
+.search-wrap{margin-left:auto}
+.search-box{position:relative;display:flex;align-items:center}
+.search-box svg{position:absolute;left:10px;width:14px;height:14px;stroke:var(--text3);stroke-width:2;fill:none;pointer-events:none}
+.search-box input{font-family:var(--sans);font-size:13px;padding:7px 12px 7px 32px;width:220px;background:var(--surface);color:var(--text);border:1px solid var(--border2);border-radius:var(--radius);outline:none;transition:all 0.2s;box-shadow:var(--shadow-sm)}
+.search-box input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(67,97,238,0.12)}
+.search-box input::placeholder{color:var(--text3)}
+
+/* ── Table ── */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;overflow-x:auto}
+table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:600px}
+thead{background:var(--surface2)}
+th{padding:11px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.07em;text-transform:uppercase;border-bottom:2px solid var(--border)}
+td{padding:10px 16px;font-size:12.5px;border-bottom:1px solid var(--border);vertical-align:top;word-break:break-word;transition:background 0.1s}
+tr:last-child td{border-bottom:none}
+tbody tr.data-row:hover td{background:var(--blue-light)}
+tr.grp td{background:var(--surface2);font-size:11px;font-weight:700;letter-spacing:0.06em;color:var(--text3);text-transform:uppercase;padding:6px 16px;border-bottom:1px solid var(--border)}
+tr.grp td .grp-name{color:var(--blue);font-family:var(--mono);font-size:12px}
+tr.grp td .grp-meta{color:var(--text3);font-size:10px;font-weight:400}
+col.ck{width:22%} col.cs{width:10%} col.ca{width:30%} col.cb{width:30%} col.cact{width:8%}
+.kpath{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.kleaf{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text)}
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.03em}
+.p-same{background:var(--green-light);color:var(--green);border:1px solid var(--green-mid)}
+.p-diff{background:var(--red-light);color:var(--red);border:1px solid var(--red-mid)}
+.p-oa{background:var(--blue-light);color:var(--blue);border:1px solid var(--blue-mid)}
+.p-ob{background:var(--amber-light);color:var(--amber);border:1px solid var(--amber-mid)}
+.val{font-family:var(--mono);font-size:12px}
+.v-null{color:var(--text3)} .v-bool{color:var(--violet)} .v-num{color:#E67E22}
+.v-str{color:var(--text)} .v-a{color:var(--blue)} .v-b{color:#D97706} .v-miss{color:var(--text3);font-style:italic}
+.val-truncated{cursor:pointer;position:relative}
+.val-truncated .truncated-text{display:block;max-height:60px;overflow:hidden;position:relative}
+.val-truncated .truncated-text::after{content:'';position:absolute;bottom:0;left:0;right:0;height:20px;background:linear-gradient(transparent,rgba(255,255,255,0.9))}
+
+/* ── Row actions ── */
+.row-actions{display:flex;gap:4px;align-items:flex-start;flex-wrap:wrap}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);cursor:pointer;transition:all 0.15s;color:var(--text3)}
+.icon-btn:hover{background:var(--blue-light);border-color:var(--blue-mid);color:var(--blue)}
+.icon-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn.copied{background:var(--green-light);border-color:var(--green-mid);color:var(--green)}
+
+/* ── Expand panel ── */
+tr.expand-row td{padding:0;border-bottom:1px solid var(--border)}
+.expand-panel{display:none;padding:16px;background:var(--surface2)}
+.expand-panel.open{display:block}
+.expand-panel-inner{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.diff-pane{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.diff-pane-head{padding:7px 12px;font-size:11px;font-weight:700;letter-spacing:0.05em;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.diff-pane-head.pa{background:var(--blue-light);color:var(--blue)}
+.diff-pane-head.pb{background:var(--amber-light);color:var(--amber)}
+.diff-pane-head.ps{background:var(--green-light);color:var(--green)}
+.diff-pane-copy{cursor:pointer;font-size:10px;padding:2px 8px;border-radius:4px;border:1px solid currentColor;opacity:0.7;background:transparent;font-family:var(--sans);font-weight:600;transition:opacity 0.15s}
+.diff-pane-copy:hover{opacity:1}
+.diff-body{padding:12px;font-family:var(--mono);font-size:11.5px;line-height:1.7;overflow-x:auto;max-height:340px;overflow-y:auto;white-space:pre}
+/* line-diff highlights */
+.diff-line{display:block;padding:0 4px;margin:0 -4px;border-radius:3px}
+.diff-line.added{background:rgba(43,181,160,0.12);color:var(--green)}
+.diff-line.removed{background:rgba(224,82,99,0.12);color:var(--red);text-decoration:line-through;text-decoration-color:rgba(224,82,99,0.4)}
+.diff-line.changed-a{background:rgba(67,97,238,0.1);color:var(--blue)}
+.diff-line.changed-b{background:rgba(245,158,11,0.12);color:#D97706}
+.xml-tag{color:#7C3AED} .xml-attr{color:#E05263} .xml-val{color:var(--green)} .xml-text{color:var(--text)}
+.json-key{color:var(--blue)} .json-str{color:var(--green)} .json-num{color:#E67E22} .json-bool{color:var(--violet)} .json-null{color:var(--text3)}
+
+.no-rows{padding:48px;text-align:center;color:var(--text3);font-size:14px}
+.no-rows strong{display:block;font-size:16px;margin-bottom:4px;color:var(--text2)}
+
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(26,29,46,0.5);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);box-shadow:var(--shadow-lg);width:min(90vw,800px);max-height:80vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2)}
+.modal-title{font-size:14px;font-weight:700;color:var(--text)}
+.modal-sub{font-size:11px;font-family:var(--mono);color:var(--text3);margin-top:2px}
+.modal-close{width:28px;height:28px;border-radius:6px;border:1px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);transition:all 0.15s}
+.modal-close:hover{background:var(--red-light);border-color:var(--red-mid);color:var(--red)}
+.modal-close svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round}
+.modal-body{overflow-y:auto;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1}
+
+/* scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--blue-mid)}
+
+@media(max-width:700px){
+  .editors{grid-template-columns:1fr} main{padding:1rem}
+  .controls{flex-direction:column;align-items:flex-start}
+  .search-wrap{margin-left:0;width:100%} .search-box input{width:100%}
+  .kbd-hint,.header-tag{display:none}
+  .expand-panel-inner{grid-template-columns:1fr}
+  .modal-body{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 20 20"><path d="M3 5h5M3 10h5M3 15h5"/><path d="M12 5h5M12 10h5M12 15h5"/><line x1="10" y1="3" x2="10" y2="17"/></svg>
+    </div>
+    <div class="logo-name">JSON <em>Comparator</em></div>
+  </div>
+  <div class="header-tag">deep diff · XML/JSON aware · array-indexed · export ready</div>
+</header>
+
+<main>
+  <div>
+    <div class="section-label">Input</div>
+    <div class="editors">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-id"><div class="dot dot-a"></div>JSON A</div>
+          <span class="badge badge-empty" id="badge-a">empty</span>
+        </div>
+        <textarea id="ta-a" placeholder="Paste your first JSON here…"></textarea>
+        <div class="panel-foot"><div class="err-msg" id="err-a"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-id"><div class="dot dot-b"></div>JSON B</div>
+          <span class="badge badge-empty" id="badge-b">empty</span>
+        </div>
+        <textarea id="ta-b" placeholder="Paste your second JSON here…"></textarea>
+        <div class="panel-foot"><div class="err-msg" id="err-b"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn-compare" id="btn-compare">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+      Compare
+    </button>
+    <button class="btn-clear" id="btn-clear">Clear all</button>
+    <div class="kbd-hint"><kbd>Ctrl</kbd><span>+</span><kbd>Enter</kbd></div>
+    <div class="export-group" id="export-group" style="display:none">
+      <button class="btn-export" id="btn-csv">
+        <svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M2 6h12M6 6v8"/></svg>
+        Export CSV
+      </button>
+      <button class="btn-export" id="btn-html">
+        <svg viewBox="0 0 16 16"><path d="M4 4l-2 8 2 0M12 4l2 8-2 0M6 12l4 0M7 8l2 0"/></svg>
+        Export HTML
+      </button>
+    </div>
+  </div>
+
+  <div class="results" id="results">
+    <div>
+      <div class="section-label">Summary</div>
+      <div class="metrics" id="metrics"></div>
+    </div>
+    <div>
+      <div class="section-label">Detailed comparison</div>
+      <div class="controls">
+        <div class="filters" id="filters">
+          <button class="filter-btn active" data-f="all">All</button>
+          <button class="filter-btn f-same" data-f="same">Same</button>
+          <button class="filter-btn f-different" data-f="different">Different</button>
+          <button class="filter-btn f-only-a" data-f="only-a">Only in A</button>
+          <button class="filter-btn f-only-b" data-f="only-b">Only in B</button>
+        </div>
+        <div class="search-wrap">
+          <div class="search-box">
+            <svg viewBox="0 0 16 16"><circle cx="6.5" cy="6.5" r="4"/><path d="M10 10l3 3"/></svg>
+            <input type="text" id="search" placeholder="Search parameter…"/>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:10px" class="table-card">
+        <table id="main-table">
+          <colgroup><col class="ck"><col class="cs"><col class="ca"><col class="cb"><col class="cact"></colgroup>
+          <thead><tr><th>Parameter</th><th>Status</th><th>Value — A</th><th>Value — B</th><th>Actions</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal for full diff -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="modal-title">Full diff</div>
+        <div class="modal-sub" id="modal-sub"></div>
+      </div>
+      <button class="modal-close" id="modal-close"><svg viewBox="0 0 14 14"><path d="M1 1l12 12M13 1L1 13"/></svg></button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const taA=$('ta-a'),taB=$('ta-b'),errA=$('err-a'),errB=$('err-b');
+const bA=$('badge-a'),bB=$('badge-b');
+const resultsEl=$('results'),metricsEl=$('metrics'),tbody=$('tbody');
+const searchIn=$('search'),filtersEl=$('filters');
+const exportGrp=$('export-group');
+let allRows=[],activeFilter='all',searchQuery='';
+
+/* ── Parse ── */
+function tryParse(s){s=s.trim();if(!s)return{ok:false,empty:true};try{return{ok:true,val:JSON.parse(s)};}catch(e){return{ok:false,err:e.message};}}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ── Deep flatten ── */
+function flatten(node){
+  const out={};
+  function walk(n,p){
+    if(n===null||typeof n!=='object'){out[p]=n;return;}
+    if(Array.isArray(n)){if(!n.length){out[p]='[]';return;}n.forEach((x,i)=>walk(x,p+'['+i+']'));return;}
+    const ks=Object.keys(n);if(!ks.length){out[p]='{}';return;}ks.forEach(k=>walk(n[k],p?p+'.'+k:k));
+  }
+  walk(node,'');return out;
+}
+
+/* ── Detect content type ── */
+function detectType(s){
+  if(typeof s!=='string')return'plain';
+  const t=s.trim();
+  if(t.startsWith('<')&&t.includes('>'))return'xml';
+  if((t.startsWith('{')||t.startsWith('['))&&(t.includes(':')||t.includes(',')))return'json';
+  return'plain';
+}
+
+/* ── Pretty print XML ── */
+function prettyXML(xml){
+  try{
+    let indent=0,out='',inTag=false;
+    const lines=xml.replace(/>\s*</g,'>\n<').split('\n');
+    lines.forEach(line=>{
+      line=line.trim();if(!line)return;
+      if(line.match(/^<\/[^>]+>$/))indent=Math.max(0,indent-1);
+      out+='  '.repeat(indent)+line+'\n';
+      if(line.match(/^<[^\/!][^>]*[^\/]>$/)&&!line.match(/^<[^>]+\/>$/))indent++;
+      else if(line.match(/^<[^\/!][^>]*\/>$/)){}
+    });
+    return out.trim();
+  }catch(e){return xml;}
+}
+
+/* ── Pretty print JSON ── */
+function prettyJSON(s){try{return JSON.stringify(JSON.parse(s),null,2);}catch(e){return s;}}
+
+/* ── Syntax highlight XML ── */
+function highlightXML(s){
+  return esc(s)
+    .replace(/(&lt;\/?[\w:.-]+)(\s|&gt;)/g,'<span class="xml-tag">$1</span>$2')
+    .replace(/(&lt;[\w:.-]+)((?:\s+[\w:.-]+=(?:"[^"]*"|'[^']*'))*)/g,(_,tag,attrs)=>tag+attrs.replace(/([\w:.-]+)=(&quot;[^&]*&quot;|'[^']*')/g,'<span class="xml-attr">$1</span>=<span class="xml-val">$2</span>'))
+    .replace(/&gt;([^&<]+)&lt;/g,'&gt;<span class="xml-text">$1</span>&lt;');
+}
+
+/* ── Syntax highlight JSON ── */
+function highlightJSON(s){
+  return esc(s)
+    .replace(/"([^"]+)"(\s*:)/g,'<span class="json-key">"$1"</span>$2')
+    .replace(/:\s*"([^"]*)"/g,': <span class="json-str">"$1"</span>')
+    .replace(/:\s*(-?\d+\.?\d*)/g,': <span class="json-num">$1</span>')
+    .replace(/:\s*(true|false)/g,': <span class="json-bool">$1</span>')
+    .replace(/:\s*(null)/g,': <span class="json-null">$1</span>');
+}
+
+/* ── Line diff ── */
+function lineDiff(a,b){
+  const la=a.split('\n'),lb=b.split('\n');
+  const outA=[],outB=[];
+  const maxLen=Math.max(la.length,lb.length);
+  for(let i=0;i<maxLen;i++){
+    const lineA=la[i],lineB=lb[i];
+    if(lineA===undefined){outA.push({text:'',cls:'removed'});outB.push({text:lineB,cls:'added'});}
+    else if(lineB===undefined){outA.push({text:lineA,cls:'removed'});outB.push({text:'',cls:'added'});}
+    else if(lineA===lineB){outA.push({text:lineA,cls:''});outB.push({text:lineB,cls:''});}
+    else{outA.push({text:lineA,cls:'changed-a'});outB.push({text:lineB,cls:'changed-b'});}
+  }
+  return{outA,outB};
+}
+
+function renderDiffLines(lines,highlighter){
+  return lines.map(l=>{
+    const h=highlighter?highlighter(l.text):esc(l.text);
+    return l.cls?`<span class="diff-line ${l.cls}">${h||'&nbsp;'}</span>`:`<span class="diff-line">${h||'&nbsp;'}</span>`;
+  }).join('\n');
+}
+
+/* ── Live validate ── */
+function lv(ta,err,badge){
+  const v=ta.value.trim();
+  if(!v){err.textContent='';badge.className='badge badge-empty';badge.textContent='empty';return;}
+  const r=tryParse(v);
+  if(r.ok){err.textContent='';badge.className='badge badge-ok';badge.textContent='valid JSON';}
+  else{err.textContent=r.err;badge.className='badge badge-err';badge.textContent='invalid';}
+}
+taA.addEventListener('input',()=>lv(taA,errA,bA));
+taB.addEventListener('input',()=>lv(taB,errB,bB));
+
+/* ── Compare ── */
+function compare(){
+  const rA=tryParse(taA.value),rB=tryParse(taB.value);
+  let blocked=false;
+  if(rA.empty){errA.textContent='Please paste JSON A.';bA.className='badge badge-err';bA.textContent='empty';blocked=true;}
+  else if(!rA.ok){errA.textContent=rA.err;bA.className='badge badge-err';bA.textContent='invalid';blocked=true;}
+  if(rB.empty){errB.textContent='Please paste JSON B.';bB.className='badge badge-err';bB.textContent='empty';blocked=true;}
+  else if(!rB.ok){errB.textContent=rB.err;bB.className='badge badge-err';bB.textContent='invalid';blocked=true;}
+  if(blocked)return;
+  const fA=flatten(rA.val),fB=flatten(rB.val);
+  const keys=Array.from(new Set([...Object.keys(fA),...Object.keys(fB)])).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
+  allRows=keys.map(k=>{
+    const inA=k in fA,inB=k in fB;
+    let st;
+    if(inA&&inB)st=JSON.stringify(fA[k])===JSON.stringify(fB[k])?'same':'different';
+    else if(inA)st='only-a';else st='only-b';
+    return{key:k,status:st,valA:fA[k],valB:fB[k]};
+  });
+  activeFilter='all';searchIn.value='';searchQuery='';
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.f==='all'));
+  renderMetrics();renderTable();
+  resultsEl.className='results visible';
+  exportGrp.style.display='flex';
+  setTimeout(()=>resultsEl.scrollIntoView({behavior:'smooth',block:'start'}),50);
+}
+
+/* ── Metrics ── */
+function renderMetrics(){
+  const same=allRows.filter(r=>r.status==='same').length;
+  const diff=allRows.filter(r=>r.status==='different').length;
+  const oA=allRows.filter(r=>r.status==='only-a').length;
+  const oB=allRows.filter(r=>r.status==='only-b').length;
+  metricsEl.innerHTML=`
+    <div class="metric m-total"><div class="metric-val">${allRows.length}</div><div class="metric-label">Total keys</div></div>
+    <div class="metric m-same"><div class="metric-val">${same}</div><div class="metric-label">Identical</div></div>
+    <div class="metric m-diff"><div class="metric-val">${diff}</div><div class="metric-label">Different</div></div>
+    <div class="metric m-only-a"><div class="metric-val">${oA}</div><div class="metric-label">Only in A</div></div>
+    <div class="metric m-only-b"><div class="metric-val">${oB}</div><div class="metric-label">Only in B</div></div>`;
+}
+
+/* ── Value cell (truncated) ── */
+function isLong(v){return typeof v==='string'&&v.length>120;}
+function rv(v,side){
+  const sc=side==='a'?'v-a':side==='b'?'v-b':'';
+  if(v===undefined)return'<span class="val v-miss">—</span>';
+  if(v===null)return`<span class="val v-null ${sc}">null</span>`;
+  if(v==='[]')return`<span class="val v-null">[ ] empty array</span>`;
+  if(v==='{}')return`<span class="val v-null">{ } empty object</span>`;
+  if(typeof v==='boolean')return`<span class="val v-bool ${sc}">${v}</span>`;
+  if(typeof v==='number')return`<span class="val v-num ${sc}">${v}</span>`;
+  if(isLong(v)){
+    const preview=esc(v.substring(0,160))+'…';
+    return`<span class="val v-str ${sc} val-truncated"><span class="truncated-text">${preview}</span></span>`;
+  }
+  return`<span class="val v-str ${sc}">${esc(String(v))}</span>`;
+}
+
+/* ── Key ── */
+function rk(k){
+  let idx=-1;for(let i=k.length-1;i>=0;i--){if(k[i]==='.'||k[i]==='['){idx=i;break;}}
+  if(idx<=0)return`<span class="kleaf">${esc(k)}</span>`;
+  return`<span class="kpath">${esc(k.slice(0,idx))}</span><span class="kleaf">${esc(k.slice(idx))}</span>`;
+}
+
+const pills={same:'<span class="pill p-same">same</span>',different:'<span class="pill p-diff">different</span>','only-a':'<span class="pill p-oa">only A</span>','only-b':'<span class="pill p-ob">only B</span>'};
+
+/* ── Build inline expand pane ── */
+function buildExpandHTML(r){
+  const sA=String(r.valA??''),sB=String(r.valB??'');
+  const type=detectType(sA)||detectType(sB);
+  let ppA=sA,ppB=sB,hlFn=null;
+  if(type==='xml'){ppA=prettyXML(sA);ppB=prettyXML(sB);hlFn=highlightXML;}
+  else if(type==='json'){ppA=prettyJSON(sA);ppB=prettyJSON(sB);hlFn=highlightJSON;}
+
+  if(r.status==='same'){
+    const hl=hlFn?hlFn(ppA):esc(ppA);
+    return`<div class="expand-panel-inner" style="grid-template-columns:1fr">
+      <div class="diff-pane">
+        <div class="diff-pane-head ps"><span>Both values identical</span><button class="diff-pane-copy" onclick="copyText(${JSON.stringify(sA)},this)">Copy</button></div>
+        <div class="diff-body">${hl}</div>
+      </div></div>`;
+  }
+  if(r.status==='only-a'){
+    const hl=hlFn?hlFn(ppA):esc(ppA);
+    return`<div class="expand-panel-inner" style="grid-template-columns:1fr">
+      <div class="diff-pane">
+        <div class="diff-pane-head pa"><span>Value — A only</span><button class="diff-pane-copy" onclick="copyText(${JSON.stringify(sA)},this)">Copy</button></div>
+        <div class="diff-body">${hl}</div>
+      </div></div>`;
+  }
+  if(r.status==='only-b'){
+    const hl=hlFn?hlFn(ppB):esc(ppB);
+    return`<div class="expand-panel-inner" style="grid-template-columns:1fr">
+      <div class="diff-pane">
+        <div class="diff-pane-head pb"><span>Value — B only</span><button class="diff-pane-copy" onclick="copyText(${JSON.stringify(sB)},this)">Copy</button></div>
+        <div class="diff-body">${hl}</div>
+      </div></div>`;
+  }
+  // different — side-by-side diff
+  const{outA,outB}=lineDiff(ppA,ppB);
+  const hlA=renderDiffLines(outA,hlFn);
+  const hlB=renderDiffLines(outB,hlFn);
+  return`<div class="expand-panel-inner">
+    <div class="diff-pane">
+      <div class="diff-pane-head pa"><span>Value — A</span><button class="diff-pane-copy" onclick="copyText(${JSON.stringify(sA)},this)">Copy</button></div>
+      <div class="diff-body">${hlA}</div>
+    </div>
+    <div class="diff-pane">
+      <div class="diff-pane-head pb"><span>Value — B</span><button class="diff-pane-copy" onclick="copyText(${JSON.stringify(sB)},this)">Copy</button></div>
+      <div class="diff-body">${hlB}</div>
+    </div>
+  </div>`;
+}
+
+/* ── Render table ── */
+function renderTable(){
+  const rows=allRows.filter(r=>{
+    if(activeFilter!=='all'&&r.status!==activeFilter)return false;
+    if(searchQuery&&!r.key.toLowerCase().includes(searchQuery))return false;
+    return true;
+  });
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="5"><div class="no-rows"><strong>Nothing to show</strong>No parameters match the current filter.</div></td></tr>';
+    return;
+  }
+  let lastTop=null,html=[];
+  rows.forEach((r,idx)=>{
+    const top=r.key.split(/[\.\[]/)[0];
+    if(top!==lastTop){
+      lastTop=top;
+      const total=rows.filter(x=>x.key.split(/[\.\[]/)[0]===top).length;
+      const diffs=rows.filter(x=>x.key.split(/[\.\[]/)[0]===top&&x.status!=='same').length;
+      html.push(`<tr class="grp"><td colspan="5"><span class="grp-name">${esc(top)}</span>&ensp;<span class="grp-meta">${total} key${total!==1?'s':''}${diffs?' · '+diffs+' difference'+(diffs>1?'s':''):' · all identical'}</span></td></tr>`);
+    }
+    let vA,vB;
+    if(r.status==='same'){vA=rv(r.valA,'');vB=rv(r.valB,'');}
+    else if(r.status==='different'){vA=rv(r.valA,'a');vB=rv(r.valB,'b');}
+    else if(r.status==='only-a'){vA=rv(r.valA,'a');vB='<span class="val v-miss">—</span>';}
+    else{vA='<span class="val v-miss">—</span>';vB=rv(r.valB,'b');}
+
+    const hasExpand=r.status!=='same'||(typeof r.valA==='string'&&r.valA.length>60);
+    const expandId=`exp-${idx}`;
+    const expandBtn=hasExpand?`<button class="icon-btn" title="Expand / diff" onclick="toggleExpand('${expandId}',${idx})"><svg viewBox="0 0 16 16"><path d="M3 5l5 5 5-5"/></svg></button>`:'';
+    const copyABtn=r.valA!==undefined?`<button class="icon-btn" title="Copy A" onclick="copyVal(${idx},'a',this)"><svg viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V3H2v9h2"/></svg></button>`:'';
+    const copyBBtn=r.valB!==undefined?`<button class="icon-btn" title="Copy B" onclick="copyVal(${idx},'b',this)"><svg viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M11 5V3H2v9h2"/></svg></button>`:'';
+
+    html.push(`<tr class="data-row" data-idx="${idx}"><td>${rk(r.key)}</td><td>${pills[r.status]}</td><td>${vA}</td><td>${vB}</td><td><div class="row-actions">${expandBtn}${copyABtn}${copyBBtn}</div></td></tr>`);
+    if(hasExpand){html.push(`<tr class="expand-row" id="${expandId}"><td colspan="5"><div class="expand-panel" id="ep-${idx}"></div></td></tr>`);}
+  });
+  tbody.innerHTML=html.join('');
+  // store rows reference for expand
+  window._rows=rows;
+}
+
+/* ── Expand toggle ── */
+window.toggleExpand=function(trId,idx){
+  const tr=$(trId),ep=$(`ep-${idx}`);
+  if(!tr||!ep)return;
+  const isOpen=ep.classList.contains('open');
+  if(isOpen){ep.classList.remove('open');ep.innerHTML='';tr.style.display='none';}
+  else{
+    ep.innerHTML=buildExpandHTML(window._rows[idx]);
+    ep.classList.add('open');
+    tr.style.display='';
+  }
+};
+
+/* ── Copy helpers ── */
+window.copyVal=function(idx,side,btn){
+  const r=window._rows[idx];
+  const v=side==='a'?r.valA:r.valB;
+  copyText(String(v??''),btn);
+};
+window.copyText=function(text,btn){
+  navigator.clipboard.writeText(text).then(()=>{
+    if(btn){const orig=btn.textContent;btn.textContent='✓ Copied';btn.classList.add('copied');setTimeout(()=>{btn.textContent=orig;btn.classList.remove('copied');},1500);}
+  }).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    if(btn){const orig=btn.textContent;btn.textContent='✓ Copied';setTimeout(()=>{btn.textContent=orig;},1500);}
+  });
+};
+
+/* ── Export CSV ── */
+$('btn-csv').addEventListener('click',()=>{
+  const header='"Parameter","Status","Value A","Value B"\n';
+  const rows=allRows.map(r=>{
+    const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+    return[q(r.key),q(r.status),q(r.valA??''),q(r.valB??'')].join(',');
+  }).join('\n');
+  download('json-comparison.csv','text/csv',header+rows);
+});
+
+/* ── Export HTML ── */
+$('btn-html').addEventListener('click',()=>{
+  const now=new Date().toLocaleString();
+  let rows='';
+  allRows.forEach(r=>{
+    const bg=r.status==='same'?'#E8F8F6':r.status==='different'?'#FDEEF0':r.status==='only-a'?'#EEF1FD':'#FEF3C7';
+    const color=r.status==='same'?'#2BB5A0':r.status==='different'?'#E05263':r.status==='only-a'?'#4361EE':'#F59E0B';
+    rows+=`<tr><td style="font-family:monospace;font-size:12px">${r.key}</td><td><span style="background:${bg};color:${color};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700">${r.status}</span></td><td style="font-family:monospace;font-size:12px;color:#4361EE">${String(r.valA??'—')}</td><td style="font-family:monospace;font-size:12px;color:#D97706">${String(r.valB??'—')}</td></tr>`;
+  });
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>JSON Comparison Report</title><style>body{font-family:sans-serif;padding:2rem;background:#F7F8FC}h1{font-size:20px;margin-bottom:4px;color:#1A1D2E}p{font-size:12px;color:#8B92AD;margin-bottom:1.5rem}table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)}th{padding:10px 14px;text-align:left;font-size:11px;color:#8B92AD;text-transform:uppercase;letter-spacing:0.06em;border-bottom:2px solid #DDE1F0;background:#F0F2FA}td{padding:9px 14px;border-bottom:1px solid #DDE1F0;vertical-align:top;word-break:break-word;font-size:13px}</style></head><body><h1>JSON Comparison Report</h1><p>Generated: ${now}</p><table><thead><tr><th>Parameter</th><th>Status</th><th>Value A</th><th>Value B</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+  download('json-comparison.html','text/html',html);
+});
+
+function download(name,type,content){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name;a.click();URL.revokeObjectURL(a.href);
+}
+
+/* ── Events ── */
+$('btn-compare').addEventListener('click',compare);
+$('btn-clear').addEventListener('click',()=>{
+  taA.value='';taB.value='';
+  errA.textContent='';errB.textContent='';
+  bA.className='badge badge-empty';bA.textContent='empty';
+  bB.className='badge badge-empty';bB.textContent='empty';
+  resultsEl.className='results';allRows=[];exportGrp.style.display='none';
+});
+filtersEl.addEventListener('click',e=>{
+  const btn=e.target.closest('.filter-btn');if(!btn)return;
+  activeFilter=btn.dataset.f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b===btn));
+  renderTable();
+});
+searchIn.addEventListener('input',e=>{searchQuery=e.target.value.trim().toLowerCase();renderTable();});
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();compare();}if(e.key==='Escape'){closeModal();}});
+
+/* ── Modal ── */
+function closeModal(){$('modal-overlay').classList.remove('open');}
+$('modal-close').addEventListener('click',closeModal);
+$('modal-overlay').addEventListener('click',e=>{if(e.target===$('modal-overlay'))closeModal();});
+})();
+</script>
+</body>
+</html>
